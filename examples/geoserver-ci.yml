@@ -1,0 +1,19 @@
+# GeoServer CI — plug this into repos with a geoserver/ as .github/workflows/geoserver-ci.yml
+#
+# Branch strategy:
+#   PR to dev     → SRT pattern check (no tests — geoserver has no test suite)
+#   PR to staging → (no test workflow — geoserver has no tests)
+
+name: GeoServer CI
+
+on:
+  pull_request:
+    branches:
+      - dev
+
+jobs:
+  # ─── dev: SRT pattern validation ───
+  srt-pattern:
+    if: github.base_ref == 'dev'
+    uses: blurgsai/ci-workflows-software-team/.github/workflows/geoserver-srt-pattern-check.yml@main
+    secrets: inherit

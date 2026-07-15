@@ -1,0 +1,21 @@
+# Backend CI — staging branch (tests ONLY, only when test files change)
+# Plug into backend repos as .github/workflows/backend-ci-staging.yml
+#
+# Trigger: PR to staging, only when files under backend/tests/ change
+# Source code changes (backend/src/) do NOT trigger this workflow.
+
+name: Backend CI — Staging
+
+on:
+  pull_request:
+    branches: [staging]
+    paths:
+      - 'backend/tests/**'
+      - '.github/workflows/backend-ci-staging.yml'
+
+jobs:
+  tests:
+    uses: blurgsai/ci-workflows-software-team/.github/workflows/backend-test-check.yml@main
+    with:
+      min-integration-tests: '5'
+    secrets: inherit

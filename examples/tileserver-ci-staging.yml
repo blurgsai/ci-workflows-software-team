@@ -1,0 +1,21 @@
+# Tileserver CI — staging branch (tests ONLY, only when test files change)
+# Plug into repos with tileserver/ as .github/workflows/tileserver-ci-staging.yml
+#
+# Trigger: PR to staging, only when files under tileserver/tests/ change
+
+name: Tileserver CI — Staging
+
+on:
+  pull_request:
+    branches: [staging]
+    paths:
+      - 'tileserver/tests/**'
+      - '.github/workflows/tileserver-ci-staging.yml'
+
+jobs:
+  tests:
+    uses: blurgsai/ci-workflows-software-team/.github/workflows/backend-test-check.yml@main
+    with:
+      backend-dir: 'tileserver'
+      min-integration-tests: '5'
+    secrets: inherit
