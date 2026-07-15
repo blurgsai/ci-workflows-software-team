@@ -7,9 +7,9 @@ name: Block Main Branch
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, master]
   push:
-    branches: [main]
+    branches: [main, master]
 
 jobs:
   block:
