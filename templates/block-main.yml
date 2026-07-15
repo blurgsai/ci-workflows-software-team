@@ -1,0 +1,17 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Copy this file to YOUR repo as .github/workflows/block-main.yml
+# It triggers on ANY PR or push to main and always fails.
+# This alerts developers that direct merges to main are not allowed.
+# ─────────────────────────────────────────────────────────────────────────────
+name: Block Main Branch
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  block:
+    uses: blurgsai/ci-workflows-software-team/.github/workflows/block-main.yml@main
+    secrets: inherit

@@ -1,0 +1,21 @@
+name: Block Main Branch Merges
+
+on:
+  workflow_call:
+
+jobs:
+  block-main:
+    name: Direct merges to main are not allowed
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail — main branch is protected
+        run: |
+          echo "ERROR: Direct merges to main are not allowed."
+          echo ""
+          echo "Please follow the branch workflow:"
+          echo "  1. Open PRs to the 'dev' branch for code changes"
+          echo "  2. Open PRs to the 'staging' branch for test/config changes"
+          echo "  3. Main branch only receives merges from staging after approval"
+          echo ""
+          echo "If you need to merge to main, contact the repository admin."
+          exit 1
