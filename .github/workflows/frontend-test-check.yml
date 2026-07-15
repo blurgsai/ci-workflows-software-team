@@ -36,7 +36,18 @@ jobs:
       - name: Checkout calling repo
         uses: actions/checkout@v4
 
+      - name: Check if frontend directory exists
+        id: check-dir
+        run: |
+          if [ -d "${{ inputs.frontend-dir }}" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "SKIP: ${{ inputs.frontend-dir }} directory does not exist"
+          fi
+
       - name: Checkout shared CI repo
+        if: steps.check-dir.outputs.exists == 'true'
         uses: actions/checkout@v4
         with:
           repository: blurgsai/ci-workflows-software-team
@@ -44,6 +55,7 @@ jobs:
           path: shared-ci
 
       - name: Setup Node.js
+        if: steps.check-dir.outputs.exists == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: ${{ inputs.node-version }}
@@ -51,20 +63,24 @@ jobs:
           cache-dependency-path: ${{ inputs.frontend-dir }}/package-lock.json
 
       - name: Install dependencies
+        if: steps.check-dir.outputs.exists == 'true'
         run: npm ci
 
       # ─── Check 1: Integration Test Coverage ───
       - name: Check integration test coverage (every UI feature has integration tests)
+        if: steps.check-dir.outputs.exists == 'true'
         run: |
           chmod +x ../shared-ci/scripts/frontend/check-frontend-integration-test-coverage.sh
           ../shared-ci/scripts/frontend/check-frontend-integration-test-coverage.sh src/features
 
       # ─── Check 2: Integration Test Minimum ───
       - name: Check integration test minimum (each integration file has >= ${{ inputs.min-integration-tests }} tests)
+        if: steps.check-dir.outputs.exists == 'true'
         run: |
           chmod +x ../shared-ci/scripts/frontend/check-frontend-integration-test-minimum.sh
           ../shared-ci/scripts/frontend/check-frontend-integration-test-minimum.sh src/features ${{ inputs.min-integration-tests }}
 
       # ─── Check 3: Run All Tests (unit + integration) ───
       - name: Run all tests
+        if: steps.check-dir.outputs.exists == 'true'
         run: npx vitest run --reporter=verbose

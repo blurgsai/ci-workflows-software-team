@@ -36,7 +36,18 @@ jobs:
       - name: Checkout calling repo
         uses: actions/checkout@v4
 
+      - name: Check if backend directory exists
+        id: check-dir
+        run: |
+          if [ -d "${{ inputs.backend-dir }}" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "SKIP: ${{ inputs.backend-dir }} directory does not exist"
+          fi
+
       - name: Checkout shared CI repo
+        if: steps.check-dir.outputs.exists == 'true'
         uses: actions/checkout@v4
         with:
           repository: blurgsai/ci-workflows-software-team
@@ -44,6 +55,7 @@ jobs:
           path: shared-ci
 
       - name: Setup Python
+        if: steps.check-dir.outputs.exists == 'true'
         uses: actions/setup-python@v5
         with:
           python-version: ${{ inputs.python-version }}
@@ -51,24 +63,28 @@ jobs:
           cache-dependency-path: ${{ inputs.backend-dir }}/requirements.txt
 
       - name: Install dependencies
+        if: steps.check-dir.outputs.exists == 'true'
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
       # ─── Check 1: Integration Test Coverage ───
       - name: Check integration test coverage (every router feature has integration tests)
+        if: steps.check-dir.outputs.exists == 'true'
         run: |
           chmod +x ../shared-ci/scripts/backend/check-backend-integration-test-coverage.sh
           ../shared-ci/scripts/backend/check-backend-integration-test-coverage.sh .
 
       # ─── Check 2: Integration Test Minimum ───
       - name: Check integration test minimum (each integration file has >= ${{ inputs.min-integration-tests }} test functions)
+        if: steps.check-dir.outputs.exists == 'true'
         run: |
           chmod +x ../shared-ci/scripts/backend/check-backend-integration-test-minimum.sh
           ../shared-ci/scripts/backend/check-backend-integration-test-minimum.sh . ${{ inputs.min-integration-tests }}
 
       # ─── Check 3: Run All Tests (unit + integration) ───
       - name: Run all backend tests
+        if: steps.check-dir.outputs.exists == 'true'
         run: |
           if [ -d tests/ ] && [ -n "$(find tests/ -name 'test_*.py' 2>/dev/null)" ]; then
             python -m pytest tests/ -v --tb=short
@@ -78,6 +94,7 @@ jobs:
 
       # ─── Check 4: Run Only Integration Tests (separate report) ───
       - name: Run integration tests only
+        if: steps.check-dir.outputs.exists == 'true'
         run: |
           if [ -d tests/ ] && [ -n "$(find tests/ -name 'test_*.py' 2>/dev/null)" ]; then
             python -m pytest tests/ -v --tb=short -m integration

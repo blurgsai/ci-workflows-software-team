@@ -10,6 +10,7 @@ ci-workflows-software-team/
 │   ├── dev-ci.yml              # Orchestrator: all checks EXCEPT tests (for dev branch)
 │   ├── staging-ci.yml          # Orchestrator: tests only + source change rejection (for staging)
 │   ├── reject-source-code-changes.yml  # Rejects PRs that modify source code on staging
+│   ├── block-main.yml          # Always fails — blocks direct merges to main/master
 │   ├── backend-coding-standards-check.yml
 │   ├── backend-design-pattern-check.yml
 │   ├── backend-test-check.yml
@@ -22,7 +23,8 @@ ci-workflows-software-team/
 │   └── geoserver-srt-pattern-check.yml
 ├── templates/                  # Copy these to YOUR repo's .github/workflows/
 │   ├── dev-ci.yml              # Trigger for dev branch (all checks except tests)
-│   └── staging-ci.yml          # Trigger for staging branch (tests only + source gate)
+│   ├── staging-ci.yml          # Trigger for staging branch (tests only + source gate)
+│   └── block-main.yml          # Trigger for main/master branch (always fails)
 ├── scripts/                    # Bash validation scripts
 │   ├── backend/                # Backend (FastAPI) architecture checks
 │   ├── frontend/               # Frontend (React/TS) architecture checks
@@ -44,6 +46,7 @@ ci-workflows-software-team/
 |--------|-----------|------------------|
 | `dev`  | Coding standards, design patterns, mock JSON check, SRT pattern | Tests |
 | `staging` | Tests only + source code change rejection | Coding standards, design patterns, mock JSON, SRT |
+| `main`/`master` | ❌ Always fails — direct merges not allowed | Everything |
 
 - **Dev branch**: All architecture and coding standard checks run. Tests are skipped — dev is for active development.
 - **Staging branch**: Only tests run. Additionally, if any source code files (`*.py`, `*.ts`, `*.tsx`, `*.js`, `*.jsx` under `src/`) are changed, the PR is **rejected**. Staging should only receive non-source changes (configs, tests, docs, CI, infrastructure).
@@ -52,12 +55,13 @@ ci-workflows-software-team/
 
 ### Quick Start: Branch-Based Triggers
 
-Copy the two template files from `templates/` into YOUR repo's `.github/workflows/`:
+Copy the three template files from `templates/` into YOUR repo's `.github/workflows/`:
 
 ```bash
-# In YOUR repo:
-cp dev-ci.yml .github/workflows/dev-ci.yml
-cp staging-ci.yml .github/workflows/staging-ci.yml
+# In YOUR repo (clone this shared repo first or download the files):
+cp templates/dev-ci.yml .github/workflows/dev-ci.yml
+cp templates/staging-ci.yml .github/workflows/staging-ci.yml
+cp templates/block-main.yml .github/workflows/block-main.yml
 ```
 
 #### `templates/dev-ci.yml` — Dev Branch (all checks except tests)
