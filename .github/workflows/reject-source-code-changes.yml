@@ -1,0 +1,85 @@
+name: Reject Source Code Changes
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: 'Branch/ref of the shared-ci repo to use'
+        required: false
+        default: 'main'
+        type: string
+
+jobs:
+  reject-source-changes:
+    name: Reject if source code is changed
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout calling repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check if source code files were changed
+        run: |
+          # Get the list of changed files in this PR/push
+          if [ -n "${{ github.event.pull_request.base.sha }}" ]; then
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+            HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          else
+            # For push events, compare with previous commit
+            BASE_SHA="${{ github.event.before }}"
+            HEAD_SHA="${{ github.event.after }}"
+          fi
+
+          # If BASE_SHA is all zeros (new branch), compare with default branch
+          if [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
+            BASE_SHA=$(git rev-list --max-parents=0 HEAD | head -1)
+          fi
+
+          echo "Comparing $BASE_SHA..$HEAD_SHA"
+
+          # Source code file patterns that should NOT be changed on staging
+          SOURCE_PATTERNS=(
+            'backend/src/**/*.py'
+            'tileserver/src/**/*.py'
+            'frontend/src/**/*.ts'
+            'frontend/src/**/*.tsx'
+            'frontend/src/**/*.js'
+            'frontend/src/**/*.jsx'
+          )
+
+          CHANGED_FILES=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" 2>/dev/null || git diff --name-only HEAD~1 HEAD 2>/dev/null || echo "")
+
+          if [ -z "$CHANGED_FILES" ]; then
+            echo "No changed files detected — allowing"
+            exit 0
+          fi
+
+          echo "Changed files:"
+          echo "$CHANGED_FILES"
+
+          SOURCE_CHANGED=""
+          for file in $CHANGED_FILES; do
+            for pattern in "${SOURCE_PATTERNS[@]}"; do
+              # Use bash pattern matching
+              case "$file" in
+                $pattern)
+                  SOURCE_CHANGED="$SOURCE_CHANGED\n  $file"
+                  break
+                  ;;
+              esac
+            done
+          done
+
+          if [ -n "$SOURCE_CHANGED" ]; then
+            echo "FAIL: Source code changes detected on staging branch:"
+            echo -e "$SOURCE_CHANGED"
+            echo ""
+            echo "Staging branch should only receive non-source changes"
+            echo "(configs, tests, docs, CI files, infrastructure)."
+            echo "Source code changes must go through the dev branch first."
+            exit 1
+          fi
+
+          echo "PASS: No source code changes detected — non-source changes only"

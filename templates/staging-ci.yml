@@ -1,0 +1,17 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Copy this file to YOUR repo as .github/workflows/staging-ci.yml
+# It triggers on PRs and pushes to the "staging" branch.
+# Runs ONLY tests + rejects if source code files were changed.
+# ─────────────────────────────────────────────────────────────────────────────
+name: Staging Branch CI
+
+on:
+  pull_request:
+    branches: [staging]
+  push:
+    branches: [staging]
+
+jobs:
+  staging-checks:
+    uses: blurgsai/ci-workflows-software-team/.github/workflows/staging-ci.yml@main
+    secrets: inherit

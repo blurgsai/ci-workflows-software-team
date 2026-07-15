@@ -1,0 +1,66 @@
+name: Staging Branch CI (Tests Only + Source Change Rejection)
+
+on:
+  workflow_call:
+    inputs:
+      backend-dir:
+        description: 'Path to the backend directory relative to repo root'
+        required: false
+        default: 'backend'
+        type: string
+      frontend-dir:
+        description: 'Path to the frontend directory relative to repo root'
+        required: false
+        default: 'frontend'
+        type: string
+      python-version:
+        description: 'Python version to use'
+        required: false
+        default: '3.12'
+        type: string
+      node-version:
+        description: 'Node.js version to use'
+        required: false
+        default: '20'
+        type: string
+      min-integration-tests-frontend:
+        description: 'Minimum integration test cases per frontend file'
+        required: false
+        default: '10'
+        type: string
+      min-integration-tests-backend:
+        description: 'Minimum integration test functions per backend file'
+        required: false
+        default: '5'
+        type: string
+      ref:
+        description: 'Branch/ref of the shared-ci repo to use'
+        required: false
+        default: 'main'
+        type: string
+
+jobs:
+  # ─── Gate: Reject if source code was changed ───
+  reject-source-changes:
+    uses: ./.github/workflows/reject-source-code-changes.yml
+    with:
+      ref: ${{ inputs.ref }}
+
+  # ─── Tests only (run after source-change gate passes) ───
+  backend-tests:
+    needs: reject-source-changes
+    uses: ./.github/workflows/backend-test-check.yml
+    with:
+      backend-dir: ${{ inputs.backend-dir }}
+      python-version: ${{ inputs.python-version }}
+      min-integration-tests: ${{ inputs.min-integration-tests-backend }}
+      ref: ${{ inputs.ref }}
+
+  frontend-tests:
+    needs: reject-source-changes
+    uses: ./.github/workflows/frontend-test-check.yml
+    with:
+      frontend-dir: ${{ inputs.frontend-dir }}
+      node-version: ${{ inputs.node-version }}
+      min-integration-tests: ${{ inputs.min-integration-tests-frontend }}
+      ref: ${{ inputs.ref }}

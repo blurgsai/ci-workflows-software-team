@@ -7,6 +7,9 @@ Centralized GitHub Actions workflows, architecture validation scripts, and share
 ```
 ci-workflows-software-team/
 ├── .github/workflows/          # Reusable GitHub Actions workflows (workflow_call)
+│   ├── dev-ci.yml              # Orchestrator: all checks EXCEPT tests (for dev branch)
+│   ├── staging-ci.yml          # Orchestrator: tests only + source change rejection (for staging)
+│   ├── reject-source-code-changes.yml  # Rejects PRs that modify source code on staging
 │   ├── backend-coding-standards-check.yml
 │   ├── backend-design-pattern-check.yml
 │   ├── backend-test-check.yml
@@ -17,6 +20,9 @@ ci-workflows-software-team/
 │   ├── tileserver-coding-standards-check.yml
 │   ├── tileserver-design-pattern-check.yml
 │   └── geoserver-srt-pattern-check.yml
+├── templates/                  # Copy these to YOUR repo's .github/workflows/
+│   ├── dev-ci.yml              # Trigger for dev branch (all checks except tests)
+│   └── staging-ci.yml          # Trigger for staging branch (tests only + source gate)
 ├── scripts/                    # Bash validation scripts
 │   ├── backend/                # Backend (FastAPI) architecture checks
 │   ├── frontend/               # Frontend (React/TS) architecture checks
@@ -32,26 +38,74 @@ ci-workflows-software-team/
         └── tileserver-importlinter   # import-linter contracts for tileserver
 ```
 
+## Branch Strategy
+
+| Branch | What runs | What doesn't run |
+|--------|-----------|------------------|
+| `dev`  | Coding standards, design patterns, mock JSON check, SRT pattern | Tests |
+| `staging` | Tests only + source code change rejection | Coding standards, design patterns, mock JSON, SRT |
+
+- **Dev branch**: All architecture and coding standard checks run. Tests are skipped — dev is for active development.
+- **Staging branch**: Only tests run. Additionally, if any source code files (`*.py`, `*.ts`, `*.tsx`, `*.js`, `*.jsx` under `src/`) are changed, the PR is **rejected**. Staging should only receive non-source changes (configs, tests, docs, CI, infrastructure).
+
 ## Usage
 
-### Calling Reusable Workflows
+### Quick Start: Branch-Based Triggers
 
-Each workflow is designed to be called from your repository's own `.github/workflows/` using `uses:` with `workflow_call`.
+Copy the two template files from `templates/` into YOUR repo's `.github/workflows/`:
+
+```bash
+# In YOUR repo:
+cp dev-ci.yml .github/workflows/dev-ci.yml
+cp staging-ci.yml .github/workflows/staging-ci.yml
+```
+
+#### `templates/dev-ci.yml` — Dev Branch (all checks except tests)
+
+```yaml
+name: Dev Branch CI
+
+on:
+  pull_request:
+    branches: [dev]
+  push:
+    branches: [dev]
+
+jobs:
+  dev-checks:
+    uses: blurgsai/ci-workflows-software-team/.github/workflows/dev-ci.yml@main
+    secrets: inherit
+```
+
+This runs: backend coding standards, backend design pattern, frontend coding standards, frontend design pattern, frontend mock JSON, tileserver coding standards, tileserver design pattern, geoserver SRT pattern.
+
+#### `templates/staging-ci.yml` — Staging Branch (tests only + source gate)
+
+```yaml
+name: Staging Branch CI
+
+on:
+  pull_request:
+    branches: [staging]
+  push:
+    branches: [staging]
+
+jobs:
+  staging-checks:
+    uses: blurgsai/ci-workflows-software-team/.github/workflows/staging-ci.yml@main
+    secrets: inherit
+```
+
+This runs: source code change rejection gate → backend tests, frontend tests.
+If any source files (`*.py`, `*.ts`, `*.tsx`, `*.js`, `*.jsx` under `src/`) are changed, the PR is rejected before tests run.
+
+### Calling Individual Workflows
+
+You can also call individual workflows directly if you need fine-grained control:
 
 #### Backend Example
 
 ```yaml
-# .github/workflows/backend-ci.yml in YOUR repo
-name: Backend CI
-
-on:
-  pull_request:
-    branches: [main, develop]
-    paths: ['backend/**']
-  push:
-    branches: [main, develop]
-    paths: ['backend/**']
-
 jobs:
   coding-standards:
     uses: blurgsai/ci-workflows-software-team/.github/workflows/backend-coding-standards-check.yml@main
@@ -71,17 +125,6 @@ jobs:
 #### Frontend Example
 
 ```yaml
-# .github/workflows/frontend-ci.yml in YOUR repo
-name: Frontend CI
-
-on:
-  pull_request:
-    branches: [main, develop]
-    paths: ['frontend/**']
-  push:
-    branches: [main, develop]
-    paths: ['frontend/**']
-
 jobs:
   coding-standards:
     uses: blurgsai/ci-workflows-software-team/.github/workflows/frontend-coding-standards-check.yml@main
@@ -107,17 +150,6 @@ jobs:
 #### Tileserver Example
 
 ```yaml
-# .github/workflows/tileserver-ci.yml in YOUR repo
-name: Tileserver CI
-
-on:
-  pull_request:
-    branches: [main, develop]
-    paths: ['tileserver/**']
-  push:
-    branches: [main, develop]
-    paths: ['tileserver/**']
-
 jobs:
   coding-standards:
     uses: blurgsai/ci-workflows-software-team/.github/workflows/tileserver-coding-standards-check.yml@main
@@ -131,17 +163,6 @@ jobs:
 #### GeoServer Example
 
 ```yaml
-# .github/workflows/geoserver-ci.yml in YOUR repo
-name: GeoServer CI
-
-on:
-  pull_request:
-    branches: [main, develop]
-    paths: ['geoserver/**']
-  push:
-    branches: [main, develop]
-    paths: ['geoserver/**']
-
 jobs:
   srt-pattern:
     uses: blurgsai/ci-workflows-software-team/.github/workflows/geoserver-srt-pattern-check.yml@main
@@ -155,6 +176,18 @@ All workflows accept these optional inputs (defaults shown):
 | Workflow | Input | Default | Description |
 |----------|-------|---------|-------------|
 | All | `ref` | `main` | Branch/ref of this shared CI repo |
+| Dev CI | `backend-dir` | `backend` | Path to backend directory |
+| Dev CI | `frontend-dir` | `frontend` | Path to frontend directory |
+| Dev CI | `tileserver-dir` | `tileserver` | Path to tileserver directory |
+| Dev CI | `geoserver-dir` | `geoserver` | Path to geoserver directory |
+| Dev CI | `python-version` | `3.12` | Python version |
+| Dev CI | `node-version` | `20` | Node.js version |
+| Staging CI | `backend-dir` | `backend` | Path to backend directory |
+| Staging CI | `frontend-dir` | `frontend` | Path to frontend directory |
+| Staging CI | `python-version` | `3.12` | Python version |
+| Staging CI | `node-version` | `20` | Node.js version |
+| Staging CI | `min-integration-tests-frontend` | `10` | Min tests per frontend integration file |
+| Staging CI | `min-integration-tests-backend` | `5` | Min test functions per backend integration file |
 | Backend | `backend-dir` | `backend` | Path to backend directory |
 | Backend | `python-version` | `3.12` | Python version |
 | Backend Test | `min-integration-tests` | `5` | Min test functions per integration file |

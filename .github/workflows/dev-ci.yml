@@ -1,0 +1,95 @@
+name: Dev Branch CI (All Checks Except Tests)
+
+on:
+  workflow_call:
+    inputs:
+      backend-dir:
+        description: 'Path to the backend directory relative to repo root'
+        required: false
+        default: 'backend'
+        type: string
+      frontend-dir:
+        description: 'Path to the frontend directory relative to repo root'
+        required: false
+        default: 'frontend'
+        type: string
+      tileserver-dir:
+        description: 'Path to the tileserver directory relative to repo root'
+        required: false
+        default: 'tileserver'
+        type: string
+      geoserver-dir:
+        description: 'Path to the geoserver directory relative to repo root'
+        required: false
+        default: 'geoserver'
+        type: string
+      python-version:
+        description: 'Python version to use'
+        required: false
+        default: '3.12'
+        type: string
+      node-version:
+        description: 'Node.js version to use'
+        required: false
+        default: '20'
+        type: string
+      ref:
+        description: 'Branch/ref of the shared-ci repo to use'
+        required: false
+        default: 'main'
+        type: string
+
+jobs:
+  backend-coding-standards:
+    uses: ./.github/workflows/backend-coding-standards-check.yml
+    with:
+      backend-dir: ${{ inputs.backend-dir }}
+      python-version: ${{ inputs.python-version }}
+      ref: ${{ inputs.ref }}
+
+  backend-design-pattern:
+    uses: ./.github/workflows/backend-design-pattern-check.yml
+    with:
+      backend-dir: ${{ inputs.backend-dir }}
+      python-version: ${{ inputs.python-version }}
+      ref: ${{ inputs.ref }}
+
+  frontend-coding-standards:
+    uses: ./.github/workflows/frontend-coding-standards-check.yml
+    with:
+      frontend-dir: ${{ inputs.frontend-dir }}
+      node-version: ${{ inputs.node-version }}
+      ref: ${{ inputs.ref }}
+
+  frontend-design-pattern:
+    uses: ./.github/workflows/frontend-design-pattern-check.yml
+    with:
+      frontend-dir: ${{ inputs.frontend-dir }}
+      node-version: ${{ inputs.node-version }}
+      ref: ${{ inputs.ref }}
+
+  frontend-mock-json:
+    uses: ./.github/workflows/frontend-mock-json-check.yml
+    with:
+      frontend-dir: ${{ inputs.frontend-dir }}
+      ref: ${{ inputs.ref }}
+
+  tileserver-coding-standards:
+    uses: ./.github/workflows/tileserver-coding-standards-check.yml
+    with:
+      tileserver-dir: ${{ inputs.tileserver-dir }}
+      python-version: ${{ inputs.python-version }}
+      ref: ${{ inputs.ref }}
+
+  tileserver-design-pattern:
+    uses: ./.github/workflows/tileserver-design-pattern-check.yml
+    with:
+      tileserver-dir: ${{ inputs.tileserver-dir }}
+      python-version: ${{ inputs.python-version }}
+      ref: ${{ inputs.ref }}
+
+  geoserver-srt-pattern:
+    uses: ./.github/workflows/geoserver-srt-pattern-check.yml
+    with:
+      geoserver-dir: ${{ inputs.geoserver-dir }}
+      ref: ${{ inputs.ref }}
