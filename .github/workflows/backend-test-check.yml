@@ -1,0 +1,86 @@
+name: Backend Test Check
+
+on:
+  workflow_call:
+    inputs:
+      backend-dir:
+        description: 'Path to the backend directory relative to repo root'
+        required: false
+        default: 'backend'
+        type: string
+      python-version:
+        description: 'Python version to use'
+        required: false
+        default: '3.12'
+        type: string
+      min-integration-tests:
+        description: 'Minimum integration test functions per file'
+        required: false
+        default: '5'
+        type: string
+      ref:
+        description: 'Branch/ref of the shared-ci repo to use'
+        required: false
+        default: 'main'
+        type: string
+
+jobs:
+  backend-tests:
+    name: Backend Unit & Integration Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ inputs.backend-dir }}
+
+    steps:
+      - name: Checkout calling repo
+        uses: actions/checkout@v4
+
+      - name: Checkout shared CI repo
+        uses: actions/checkout@v4
+        with:
+          repository: blurgsai/ci-workflows-software-team
+          ref: ${{ inputs.ref }}
+          path: shared-ci
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python-version }}
+          cache: 'pip'
+          cache-dependency-path: ${{ inputs.backend-dir }}/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # ─── Check 1: Integration Test Coverage ───
+      - name: Check integration test coverage (every router feature has integration tests)
+        run: |
+          chmod +x ../shared-ci/scripts/backend/check-backend-integration-test-coverage.sh
+          ../shared-ci/scripts/backend/check-backend-integration-test-coverage.sh .
+
+      # ─── Check 2: Integration Test Minimum ───
+      - name: Check integration test minimum (each integration file has >= ${{ inputs.min-integration-tests }} test functions)
+        run: |
+          chmod +x ../shared-ci/scripts/backend/check-backend-integration-test-minimum.sh
+          ../shared-ci/scripts/backend/check-backend-integration-test-minimum.sh . ${{ inputs.min-integration-tests }}
+
+      # ─── Check 3: Run All Tests (unit + integration) ───
+      - name: Run all backend tests
+        run: |
+          if [ -d tests/ ] && [ -n "$(find tests/ -name 'test_*.py' 2>/dev/null)" ]; then
+            python -m pytest tests/ -v --tb=short
+          else
+            echo "SKIP: No test files found in tests/"
+          fi
+
+      # ─── Check 4: Run Only Integration Tests (separate report) ───
+      - name: Run integration tests only
+        run: |
+          if [ -d tests/ ] && [ -n "$(find tests/ -name 'test_*.py' 2>/dev/null)" ]; then
+            python -m pytest tests/ -v --tb=short -m integration
+          else
+            echo "SKIP: No test files found in tests/"
+          fi

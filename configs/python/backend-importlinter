@@ -1,0 +1,33 @@
+[importlinter]
+root_package = src
+
+# Note: "Router never imports from clients" contract removed because it incorrectly
+# flags valid transitive imports (router -> models -> clients, router -> services -> clients).
+# Per the architecture guide, models/ is the anti-corruption layer and SHOULD import from clients/.
+# The shell script check-backend-layer-imports.sh already enforces direct import rules.
+
+[importlinter:contract:clients-never-imports-other-layers]
+name = Clients never import from other layers
+type = forbidden
+source_modules =
+    src.features.*.clients
+forbidden_modules =
+    src.features.*.models
+    src.features.*.services
+    src.features.*.router
+
+[importlinter:contract:services-never-imports-router]
+name = Services never import from router
+type = forbidden
+source_modules =
+    src.features.*.services
+forbidden_modules =
+    src.features.*.router
+
+[importlinter:contract:shared-only-imports-shared]
+name = Shared only imports from shared
+type = forbidden
+source_modules =
+    src.shared
+forbidden_modules =
+    src.features

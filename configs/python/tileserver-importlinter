@@ -1,0 +1,53 @@
+[importlinter]
+root_package = src
+
+# Tileserver 3-layer architecture: schemas → repository → services → router
+# Data flows one direction: Repository → Services → Router
+# schemas/ defines API models (no external schema to map — we own the schema)
+# repository/ handles local data access (SQLite + filesystem)
+# services/ contains business logic (no FastAPI imports)
+# router/ handles HTTP (FastAPI route handlers only)
+
+[importlinter:contract:repository-never-imports-other-layers]
+name = Repository never imports from services or router
+type = forbidden
+source_modules =
+    src.features.*.repository
+forbidden_modules =
+    src.features.*.services
+    src.features.*.router
+    src.features.*.schemas
+
+[importlinter:contract:services-never-imports-router]
+name = Services never import from router
+type = forbidden
+source_modules =
+    src.features.*.services
+forbidden_modules =
+    src.features.*.router
+
+[importlinter:contract:router-never-imports-repository]
+name = Router never imports from repository — delegates to services
+type = forbidden
+source_modules =
+    src.features.*.router
+forbidden_modules =
+    src.features.*.repository
+
+[importlinter:contract:shared-only-imports-shared]
+name = Shared only imports from shared
+type = forbidden
+source_modules =
+    src.shared
+forbidden_modules =
+    src.features
+
+[importlinter:contract:schemas-never-imports-other-layers]
+name = Schemas never import from repository, services, or router
+type = forbidden
+source_modules =
+    src.features.*.schemas
+forbidden_modules =
+    src.features.*.repository
+    src.features.*.services
+    src.features.*.router

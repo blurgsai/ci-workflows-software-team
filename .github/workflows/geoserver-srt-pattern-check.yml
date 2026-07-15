@@ -1,0 +1,64 @@
+name: GeoServer SRT Pattern Check
+
+on:
+  workflow_call:
+    inputs:
+      geoserver-dir:
+        description: 'Path to the geoserver directory relative to repo root'
+        required: false
+        default: 'geoserver'
+        type: string
+      ref:
+        description: 'Branch/ref of the shared-ci repo to use'
+        required: false
+        default: 'main'
+        type: string
+
+jobs:
+  geoserver-srt-pattern:
+    name: GeoServer Service Replication Template Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout calling repo
+        uses: actions/checkout@v4
+
+      - name: Checkout shared CI repo
+        uses: actions/checkout@v4
+        with:
+          repository: blurgsai/ci-workflows-software-team
+          ref: ${{ inputs.ref }}
+          path: shared-ci
+
+      # ─── Check 0: SRT Structure Validation ───
+      - name: Validate SRT pattern (required files, dirs, scripts, gitignore)
+        run: |
+          chmod +x shared-ci/scripts/geoserver/check-geoserver-srt-pattern.sh
+          shared-ci/scripts/geoserver/check-geoserver-srt-pattern.sh ${{ inputs.geoserver-dir }}
+
+      # ─── Check 1: Docker Compose Syntax ───
+      - name: Validate docker-compose.yml syntax
+        run: |
+          if [ -f ${{ inputs.geoserver-dir }}/docker-compose.yml ]; then
+            docker compose -f ${{ inputs.geoserver-dir }}/docker-compose.yml config --quiet
+          else
+            echo "SKIP: docker-compose.yml not found"
+            exit 1
+          fi
+
+      # ─── Check 2: Shell Script Syntax ───
+      - name: Validate shell script syntax
+        run: |
+          find ${{ inputs.geoserver-dir }}/ -name '*.sh' -type f -exec bash -n {} \;
+
+      # ─── Check 3: No hardcoded secrets in tracked files ───
+      - name: Check no hardcoded secrets in config files
+        run: |
+          SECRET_PATTERNS="SecurePassword|password123|secret_key_here|BEGIN.*PRIVATE KEY"
+          MATCHES=$(grep -rnE "$SECRET_PATTERNS" ${{ inputs.geoserver-dir }}/config/ ${{ inputs.geoserver-dir }}/scripts/ ${{ inputs.geoserver-dir }}/docker-compose.yml 2>/dev/null || true)
+          if [ -n "$MATCHES" ]; then
+            echo "FAIL: Potential hardcoded secrets found:"
+            echo "$MATCHES"
+            exit 1
+          fi
+          echo "PASS: No hardcoded secrets detected"

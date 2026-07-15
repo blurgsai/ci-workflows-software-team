@@ -1,0 +1,39 @@
+name: Frontend Mock JSON Check
+
+on:
+  workflow_call:
+    inputs:
+      frontend-dir:
+        description: 'Path to the frontend directory relative to repo root'
+        required: false
+        default: 'frontend'
+        type: string
+      ref:
+        description: 'Branch/ref of the shared-ci repo to use'
+        required: false
+        default: 'main'
+        type: string
+
+jobs:
+  frontend-mock-json:
+    name: Frontend Mock vs Real API Check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ inputs.frontend-dir }}
+
+    steps:
+      - name: Checkout calling repo
+        uses: actions/checkout@v4
+
+      - name: Checkout shared CI repo
+        uses: actions/checkout@v4
+        with:
+          repository: blurgsai/ci-workflows-software-team
+          ref: ${{ inputs.ref }}
+          path: shared-ci
+
+      - name: Check for static public JSON fetches (warning only)
+        run: |
+          chmod +x ../shared-ci/scripts/frontend/check-frontend-mock-json-usage.sh
+          ../shared-ci/scripts/frontend/check-frontend-mock-json-usage.sh src

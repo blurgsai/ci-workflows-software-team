@@ -1,0 +1,108 @@
+name: Frontend Design Pattern Check
+
+on:
+  workflow_call:
+    inputs:
+      frontend-dir:
+        description: 'Path to the frontend directory relative to repo root'
+        required: false
+        default: 'frontend'
+        type: string
+      node-version:
+        description: 'Node.js version to use'
+        required: false
+        default: '20'
+        type: string
+      hooks-test-minimum:
+        description: 'Minimum test cases per hook test file'
+        required: false
+        default: '50'
+        type: string
+      ref:
+        description: 'Branch/ref of the shared-ci repo to use'
+        required: false
+        default: 'main'
+        type: string
+
+jobs:
+  frontend-design-pattern:
+    name: React Architecture & Design Pattern Validation
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ inputs.frontend-dir }}
+
+    steps:
+      - name: Checkout calling repo
+        uses: actions/checkout@v4
+
+      - name: Checkout shared CI repo
+        uses: actions/checkout@v4
+        with:
+          repository: blurgsai/ci-workflows-software-team
+          ref: ${{ inputs.ref }}
+          path: shared-ci
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: 'npm'
+          cache-dependency-path: ${{ inputs.frontend-dir }}/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      # ─── Check 1: Feature Folder Structure ───
+      - name: Validate feature folder structure
+        run: |
+          chmod +x ../shared-ci/scripts/frontend/validate-feature-structure.sh
+          ../shared-ci/scripts/frontend/validate-feature-structure.sh src/features
+
+      # ─── Check 2: No Nested Feature Folders ───
+      - name: Check for nested feature folders
+        run: |
+          chmod +x ../shared-ci/scripts/frontend/check-no-nested-features.sh
+          ../shared-ci/scripts/frontend/check-no-nested-features.sh src/features
+
+      # ─── Check 3: No Top-Level Technical Role Folders ───
+      - name: Check no top-level /components, /hooks, /utils folders
+        run: |
+          chmod +x ../shared-ci/scripts/frontend/check-no-top-level-tech-folders.sh
+          ../shared-ci/scripts/frontend/check-no-top-level-tech-folders.sh src
+
+      # ─── Check 4: Layer Import Rules ───
+      - name: Check layer import rules (UI no api/, hooks through mapper, etc.)
+        run: |
+          chmod +x ../shared-ci/scripts/frontend/check-layer-imports.sh
+          ../shared-ci/scripts/frontend/check-layer-imports.sh src/features
+
+      # ─── Check 5: Barrel export Rules ───
+      - name: Check barrel exports (no api/types or mappers exported)
+        run: |
+          chmod +x ../shared-ci/scripts/frontend/check-barrel-exports.sh
+          ../shared-ci/scripts/frontend/check-barrel-exports.sh src/features
+
+      # ─── Check 6: Hooks Test Placement ───
+      - name: Check hooks test placement (no tests directly in hooks/)
+        run: |
+          chmod +x ../shared-ci/scripts/frontend/check-hooks-no-tests-directly.sh
+          ../shared-ci/scripts/frontend/check-hooks-no-tests-directly.sh src/features
+
+      # ─── Check 7: Hooks Single Function Per File ───
+      - name: Check hooks single function per file
+        run: |
+          chmod +x ../shared-ci/scripts/frontend/check-hooks-single-function-per-file.sh
+          ../shared-ci/scripts/frontend/check-hooks-single-function-per-file.sh src/features
+
+      # ─── Check 8: Hooks Test Coverage ───
+      - name: Check hooks test coverage (every hook has a test file)
+        run: |
+          chmod +x ../shared-ci/scripts/frontend/check-hooks-test-coverage.sh
+          ../shared-ci/scripts/frontend/check-hooks-test-coverage.sh src/features
+
+      # ─── Check 9: Hooks Test Minimum ───
+      - name: Check hooks test minimum (each test file has >= ${{ inputs.hooks-test-minimum }} tests)
+        run: |
+          chmod +x ../shared-ci/scripts/frontend/check-hooks-test-minimum.sh
+          ../shared-ci/scripts/frontend/check-hooks-test-minimum.sh src/features ${{ inputs.hooks-test-minimum }}

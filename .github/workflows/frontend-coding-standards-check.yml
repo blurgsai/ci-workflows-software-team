@@ -1,0 +1,63 @@
+name: Frontend Coding Standards Check
+
+on:
+  workflow_call:
+    inputs:
+      frontend-dir:
+        description: 'Path to the frontend directory relative to repo root'
+        required: false
+        default: 'frontend'
+        type: string
+      node-version:
+        description: 'Node.js version to use'
+        required: false
+        default: '20'
+        type: string
+      ref:
+        description: 'Branch/ref of the shared-ci repo to use'
+        required: false
+        default: 'main'
+        type: string
+
+jobs:
+  frontend-coding-standards:
+    name: Frontend Naming & Coding Standards Validation
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ inputs.frontend-dir }}
+
+    steps:
+      - name: Checkout calling repo
+        uses: actions/checkout@v4
+
+      - name: Checkout shared CI repo
+        uses: actions/checkout@v4
+        with:
+          repository: blurgsai/ci-workflows-software-team
+          ref: ${{ inputs.ref }}
+          path: shared-ci
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: 'npm'
+          cache-dependency-path: ${{ inputs.frontend-dir }}/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      # ─── Check 1: Naming Conventions ───
+      - name: Check naming conventions (files, functions, classes, types)
+        run: |
+          chmod +x ../shared-ci/scripts/frontend/check-frontend-naming-conventions.sh
+          ../shared-ci/scripts/frontend/check-frontend-naming-conventions.sh src
+
+      # ─── Check 2: ESLint ───
+      - name: Run ESLint
+        run: npx eslint src/ --max-warnings=0
+
+      # ─── Check 3: TypeScript Type Check ───
+      - name: TypeScript type check
+        run: npx tsc -b --noEmit
