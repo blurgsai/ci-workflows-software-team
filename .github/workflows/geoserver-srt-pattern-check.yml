@@ -23,7 +23,18 @@ jobs:
       - name: Checkout calling repo
         uses: actions/checkout@v4
 
+      - name: Check if geoserver directory exists
+        id: check-dir
+        run: |
+          if [ -d "${{ inputs.geoserver-dir }}" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "SKIP: ${{ inputs.geoserver-dir }} directory does not exist"
+          fi
+
       - name: Checkout shared CI repo
+        if: steps.check-dir.outputs.exists == 'true'
         uses: actions/checkout@v4
         with:
           repository: blurgsai/ci-workflows-software-team
@@ -32,12 +43,14 @@ jobs:
 
       # ─── Check 0: SRT Structure Validation ───
       - name: Validate SRT pattern (required files, dirs, scripts, gitignore)
+        if: steps.check-dir.outputs.exists == 'true'
         run: |
           chmod +x shared-ci/scripts/geoserver/check-geoserver-srt-pattern.sh
           shared-ci/scripts/geoserver/check-geoserver-srt-pattern.sh ${{ inputs.geoserver-dir }}
 
       # ─── Check 1: Docker Compose Syntax ───
       - name: Validate docker-compose.yml syntax
+        if: steps.check-dir.outputs.exists == 'true'
         run: |
           if [ -f ${{ inputs.geoserver-dir }}/docker-compose.yml ]; then
             docker compose -f ${{ inputs.geoserver-dir }}/docker-compose.yml config --quiet
@@ -48,11 +61,13 @@ jobs:
 
       # ─── Check 2: Shell Script Syntax ───
       - name: Validate shell script syntax
+        if: steps.check-dir.outputs.exists == 'true'
         run: |
           find ${{ inputs.geoserver-dir }}/ -name '*.sh' -type f -exec bash -n {} \;
 
       # ─── Check 3: No hardcoded secrets in tracked files ───
       - name: Check no hardcoded secrets in config files
+        if: steps.check-dir.outputs.exists == 'true'
         run: |
           SECRET_PATTERNS="SecurePassword|password123|secret_key_here|BEGIN.*PRIVATE KEY"
           MATCHES=$(grep -rnE "$SECRET_PATTERNS" ${{ inputs.geoserver-dir }}/config/ ${{ inputs.geoserver-dir }}/scripts/ ${{ inputs.geoserver-dir }}/docker-compose.yml 2>/dev/null || true)

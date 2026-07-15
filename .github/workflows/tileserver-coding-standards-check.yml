@@ -31,7 +31,18 @@ jobs:
       - name: Checkout calling repo
         uses: actions/checkout@v4
 
+      - name: Check if tileserver directory exists
+        id: check-dir
+        run: |
+          if [ -d "${{ inputs.tileserver-dir }}" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "SKIP: ${{ inputs.tileserver-dir }} directory does not exist"
+          fi
+
       - name: Checkout shared CI repo
+        if: steps.check-dir.outputs.exists == 'true'
         uses: actions/checkout@v4
         with:
           repository: blurgsai/ci-workflows-software-team
@@ -39,6 +50,7 @@ jobs:
           path: shared-ci
 
       - name: Setup Python
+        if: steps.check-dir.outputs.exists == 'true'
         uses: actions/setup-python@v5
         with:
           python-version: ${{ inputs.python-version }}
@@ -46,18 +58,21 @@ jobs:
           cache-dependency-path: ${{ inputs.tileserver-dir }}/requirements.txt
 
       - name: Install dependencies
+        if: steps.check-dir.outputs.exists == 'true'
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
       # ─── Check 1: Naming Conventions ───
       - name: Check naming conventions (files, functions, classes, variables)
+        if: steps.check-dir.outputs.exists == 'true'
         run: |
           chmod +x ../shared-ci/scripts/tileserver/check-tileserver-naming-conventions.sh
           ../shared-ci/scripts/tileserver/check-tileserver-naming-conventions.sh src
 
       # ─── Check 2: Ruff Linter ───
       - name: Run ruff linter
+        if: steps.check-dir.outputs.exists == 'true'
         run: |
           if [ -d src/ ] && [ -n "$(find src/ -name '*.py' -not -name '__pycache__' 2>/dev/null)" ]; then
             pip install ruff
