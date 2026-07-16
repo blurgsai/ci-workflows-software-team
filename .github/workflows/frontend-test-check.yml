@@ -18,6 +18,11 @@ on:
         required: false
         default: '10'
         type: string
+      hooks-test-minimum:
+        description: 'Minimum test cases per hook test file'
+        required: false
+        default: '50'
+        type: string
       ref:
         description: 'Branch/ref of the shared-ci repo to use'
         required: false
@@ -80,7 +85,28 @@ jobs:
           chmod +x ../shared-ci/scripts/frontend/check-frontend-integration-test-minimum.sh
           ../shared-ci/scripts/frontend/check-frontend-integration-test-minimum.sh src/features ${{ inputs.min-integration-tests }}
 
-      # ─── Check 3: Run All Tests (unit + integration) ───
+      # ─── Check 3: Hooks Test Placement ───
+      - name: Check hooks test placement (no tests directly in hooks/)
+        if: steps.check-dir.outputs.exists == 'true'
+        run: |
+          chmod +x ../shared-ci/scripts/frontend/check-hooks-no-tests-directly.sh
+          ../shared-ci/scripts/frontend/check-hooks-no-tests-directly.sh src/features
+
+      # ─── Check 4: Hooks Test Coverage ───
+      - name: Check hooks test coverage (every hook has a test file)
+        if: steps.check-dir.outputs.exists == 'true'
+        run: |
+          chmod +x ../shared-ci/scripts/frontend/check-hooks-test-coverage.sh
+          ../shared-ci/scripts/frontend/check-hooks-test-coverage.sh src/features
+
+      # ─── Check 5: Hooks Test Minimum ───
+      - name: Check hooks test minimum (each test file has >= ${{ inputs.hooks-test-minimum }} tests)
+        if: steps.check-dir.outputs.exists == 'true'
+        run: |
+          chmod +x ../shared-ci/scripts/frontend/check-hooks-test-minimum.sh
+          ../shared-ci/scripts/frontend/check-hooks-test-minimum.sh src/features ${{ inputs.hooks-test-minimum }}
+
+      # ─── Check 6: Run All Tests (unit + integration) ───
       - name: Run all tests
         if: steps.check-dir.outputs.exists == 'true'
         run: npx vitest run --reporter=verbose

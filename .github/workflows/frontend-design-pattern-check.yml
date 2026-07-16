@@ -13,11 +13,6 @@ on:
         required: false
         default: '20'
         type: string
-      hooks-test-minimum:
-        description: 'Minimum test cases per hook test file'
-        required: false
-        default: '50'
-        type: string
       ref:
         description: 'Branch/ref of the shared-ci repo to use'
         required: false
@@ -83,26 +78,8 @@ jobs:
           chmod +x ../shared-ci/scripts/frontend/check-barrel-exports.sh
           ../shared-ci/scripts/frontend/check-barrel-exports.sh src/features
 
-      # ─── Check 6: Hooks Test Placement ───
-      - name: Check hooks test placement (no tests directly in hooks/)
-        run: |
-          chmod +x ../shared-ci/scripts/frontend/check-hooks-no-tests-directly.sh
-          ../shared-ci/scripts/frontend/check-hooks-no-tests-directly.sh src/features
-
-      # ─── Check 7: Hooks Single Function Per File ───
+      # ─── Check 6: Hooks Single Function Per File ───
       - name: Check hooks single function per file
         run: |
           chmod +x ../shared-ci/scripts/frontend/check-hooks-single-function-per-file.sh
           ../shared-ci/scripts/frontend/check-hooks-single-function-per-file.sh src/features
-
-      # ─── Check 8: Hooks Test Coverage ───
-      - name: Check hooks test coverage (every hook has a test file)
-        run: |
-          chmod +x ../shared-ci/scripts/frontend/check-hooks-test-coverage.sh
-          ../shared-ci/scripts/frontend/check-hooks-test-coverage.sh src/features
-
-      # ─── Check 9: Hooks Test Minimum ───
-      - name: Check hooks test minimum (each test file has >= ${{ inputs.hooks-test-minimum }} tests)
-        run: |
-          chmod +x ../shared-ci/scripts/frontend/check-hooks-test-minimum.sh
-          ../shared-ci/scripts/frontend/check-hooks-test-minimum.sh src/features ${{ inputs.hooks-test-minimum }}
