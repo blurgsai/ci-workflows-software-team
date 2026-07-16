@@ -33,6 +33,7 @@ jobs:
 
       - name: Check if tileserver directory exists
         id: check-dir
+        working-directory: .
         run: |
           if [ -d "${{ inputs.tileserver-dir }}" ]; then
             echo "exists=true" >> $GITHUB_OUTPUT
