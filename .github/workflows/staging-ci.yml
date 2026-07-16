@@ -28,6 +28,11 @@ on:
         required: false
         default: '10'
         type: string
+      hooks-test-minimum:
+        description: 'Minimum test cases per hook test file'
+        required: false
+        default: '50'
+        type: string
       min-integration-tests-backend:
         description: 'Minimum integration test functions per backend file'
         required: false
@@ -63,4 +68,5 @@ jobs:
       frontend-dir: ${{ inputs.frontend-dir }}
       node-version: ${{ inputs.node-version }}
       min-integration-tests: ${{ inputs.min-integration-tests-frontend }}
+      hooks-test-minimum: ${{ inputs.hooks-test-minimum }}
       ref: ${{ inputs.ref }}
