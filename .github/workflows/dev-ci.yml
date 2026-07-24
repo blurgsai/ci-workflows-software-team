@@ -13,16 +13,6 @@ on:
         required: false
         default: 'frontend'
         type: string
-      tileserver-dir:
-        description: 'Path to the tileserver directory relative to repo root'
-        required: false
-        default: 'tileserver'
-        type: string
-      geoserver-dir:
-        description: 'Path to the geoserver directory relative to repo root'
-        required: false
-        default: 'geoserver'
-        type: string
       python-version:
         description: 'Python version to use'
         required: false
@@ -74,22 +64,3 @@ jobs:
       frontend-dir: ${{ inputs.frontend-dir }}
       ref: ${{ inputs.ref }}
 
-  tileserver-coding-standards:
-    uses: ./.github/workflows/tileserver-coding-standards-check.yml
-    with:
-      tileserver-dir: ${{ inputs.tileserver-dir }}
-      python-version: ${{ inputs.python-version }}
-      ref: ${{ inputs.ref }}
-
-  tileserver-design-pattern:
-    uses: ./.github/workflows/tileserver-design-pattern-check.yml
-    with:
-      tileserver-dir: ${{ inputs.tileserver-dir }}
-      python-version: ${{ inputs.python-version }}
-      ref: ${{ inputs.ref }}
-
-  geoserver-srt-pattern:
-    uses: ./.github/workflows/geoserver-srt-pattern-check.yml
-    with:
-      geoserver-dir: ${{ inputs.geoserver-dir }}
-      ref: ${{ inputs.ref }}
